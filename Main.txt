@@ -1,0 +1,281 @@
+-- Script GUI para Chat Automático no Roblox
+local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Variáveis do sistema
+local isActive = false
+local messageCount = 0
+local maxMessages = 0
+local currentMessage = ""
+local connection
+
+-- Criar a GUI principal
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ChatAutoGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = playerGui
+
+-- Frame principal
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 350, 0, 280)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Adicionar sombra ao frame principal
+local shadow = Instance.new("Frame")
+shadow.Name = "Shadow"
+shadow.Size = UDim2.new(1, 10, 1, 10)
+shadow.Position = UDim2.new(0, -5, 0, -5)
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.5
+shadow.BorderSizePixel = 0
+shadow.ZIndex = mainFrame.ZIndex - 1
+shadow.Parent = mainFrame
+
+-- Adicionar bordas arredondadas
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = mainFrame
+
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 12)
+shadowCorner.Parent = shadow
+
+-- Título
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "Title"
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+titleLabel.BorderSizePixel = 0
+titleLabel.Text = "🚀 Chat Auto Sender"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 12)
+titleCorner.Parent = titleLabel
+
+-- TextBox para mensagem
+local messageBox = Instance.new("TextBox")
+messageBox.Name = "MessageBox"
+messageBox.Size = UDim2.new(0.9, 0, 0, 35)
+messageBox.Position = UDim2.new(0.05, 0, 0, 60)
+messageBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+messageBox.BorderSizePixel = 0
+messageBox.Text = "Digite sua mensagem aqui..."
+messageBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+messageBox.TextScaled = true
+messageBox.Font = Enum.Font.Gotham
+messageBox.ClearTextOnFocus = true
+messageBox.Parent = mainFrame
+
+local messageCorner = Instance.new("UICorner")
+messageCorner.CornerRadius = UDim.new(0, 8)
+messageCorner.Parent = messageBox
+
+-- Label para quantidade
+local countLabel = Instance.new("TextLabel")
+countLabel.Name = "CountLabel"
+countLabel.Size = UDim2.new(0.4, 0, 0, 25)
+countLabel.Position = UDim2.new(0.05, 0, 0, 110)
+countLabel.BackgroundTransparency = 1
+countLabel.Text = "Quantidade:"
+countLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+countLabel.TextScaled = true
+countLabel.Font = Enum.Font.Gotham
+countLabel.TextXAlignment = Enum.TextXAlignment.Left
+countLabel.Parent = mainFrame
+
+-- TextBox para quantidade
+local countBox = Instance.new("TextBox")
+countBox.Name = "CountBox"
+countBox.Size = UDim2.new(0.4, 0, 0, 35)
+countBox.Position = UDim2.new(0.55, 0, 0, 105)
+countBox.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+countBox.BorderSizePixel = 0
+countBox.Text = "10"
+countBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+countBox.TextScaled = true
+countBox.Font = Enum.Font.Gotham
+countBox.Parent = mainFrame
+
+local countCorner = Instance.new("UICorner")
+countCorner.CornerRadius = UDim.new(0, 8)
+countCorner.Parent = countBox
+
+-- Botão Ativar/Desativar
+local toggleButton = Instance.new("TextButton")
+toggleButton.Name = "ToggleButton"
+toggleButton.Size = UDim2.new(0.8, 0, 0, 40)
+toggleButton.Position = UDim2.new(0.1, 0, 0, 160)
+toggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 70)
+toggleButton.BorderSizePixel = 0
+toggleButton.Text = "✅ ATIVAR"
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.TextScaled = true
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.Parent = mainFrame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 10)
+buttonCorner.Parent = toggleButton
+
+-- Status Label
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+statusLabel.Position = UDim2.new(0.05, 0, 0, 215)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Inativo"
+statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.Parent = mainFrame
+
+-- Contador de mensagens
+local messageCounterLabel = Instance.new("TextLabel")
+messageCounterLabel.Name = "MessageCounter"
+messageCounterLabel.Size = UDim2.new(0.9, 0, 0, 20)
+messageCounterLabel.Position = UDim2.new(0.05, 0, 0, 245)
+messageCounterLabel.BackgroundTransparency = 1
+messageCounterLabel.Text = "Mensagens enviadas: 0/0"
+messageCounterLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+messageCounterLabel.TextScaled = true
+messageCounterLabel.Font = Enum.Font.Gotham
+messageCounterLabel.Parent = mainFrame
+
+-- Função para enviar mensagem no chat
+local function sendChatMessage(message)
+    local success, err = pcall(function()
+        -- Método para Roblox moderno
+        if game:GetService("TextChatService").ChatInputBarConfiguration.TargetTextChannel then
+            game:GetService("TextChatService").ChatInputBarConfiguration.TargetTextChannel:SendAsync(message)
+        else
+            -- Método alternativo para versões mais antigas
+            game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.SayMessageRequest:FireServer(message, "All")
+        end
+    end)
+    
+    if not success then
+        -- Método de fallback
+        pcall(function()
+            game.Players:Chat(message)
+        end)
+    end
+end
+
+-- Função para atualizar o status
+local function updateStatus()
+    if isActive then
+        statusLabel.Text = "Status: ✅ ATIVO"
+        statusLabel.TextColor3 = Color3.fromRGB(70, 255, 70)
+        toggleButton.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+        toggleButton.Text = "❌ DESATIVAR"
+    else
+        statusLabel.Text = "Status: ❌ INATIVO"
+        statusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+        toggleButton.BackgroundColor3 = Color3.fromRGB(70, 130, 70)
+        toggleButton.Text = "✅ ATIVAR"
+    end
+    
+    messageCounterLabel.Text = "Mensagens enviadas: " .. messageCount .. "/" .. maxMessages
+end
+
+-- Função para iniciar/parar o spam
+local function toggleSpam()
+    if not isActive then
+        -- Ativar
+        currentMessage = messageBox.Text
+        maxMessages = tonumber(countBox.Text) or 10
+        messageCount = 0
+        
+        if currentMessage == "" or currentMessage == "Digite sua mensagem aqui..." then
+            StarterGui:SetCore("ChatMakeSystemMessage", {
+                Text = "[AVISO] Por favor, digite uma mensagem válida!";
+                Color = Color3.fromRGB(255, 100, 100);
+            })
+            return
+        end
+        
+        isActive = true
+        updateStatus()
+        
+        -- Começar a enviar mensagens
+        local startTime = tick()
+        connection = RunService.Heartbeat:Connect(function()
+            if not isActive then
+                connection:Disconnect()
+                return
+            end
+            
+            -- Enviar uma mensagem a cada 3 segundos (para evitar rate limit)
+            if tick() - startTime >= 3 and messageCount < maxMessages then
+                sendChatMessage(currentMessage)
+                messageCount = messageCount + 1
+                updateStatus()
+                startTime = tick()
+                
+                if messageCount >= maxMessages then
+                    isActive = false
+                    updateStatus()
+                    connection:Disconnect()
+                    
+                    StarterGui:SetCore("ChatMakeSystemMessage", {
+                        Text = "[CONCLUÍDO] Todas as mensagens foram enviadas!";
+                        Color = Color3.fromRGB(100, 255, 100);
+                    })
+                end
+            end
+        end)
+    else
+        -- Desativar
+        isActive = false
+        if connection then
+            connection:Disconnect()
+        end
+        updateStatus()
+        
+        StarterGui:SetCore("ChatMakeSystemMessage", {
+            Text = "[PARADO] Chat automático desativado!";
+            Color = Color3.fromRGB(255, 255, 100);
+        })
+    end
+end
+
+-- Conectar o botão
+toggleButton.MouseButton1Click:Connect(toggleSpam)
+
+-- Efeitos visuais no botão
+toggleButton.MouseEnter:Connect(function()
+    local tween = TweenService:Create(toggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0.85, 0, 0, 42)})
+    tween:Play()
+end)
+
+toggleButton.MouseLeave:Connect(function()
+    local tween = TweenService:Create(toggleButton, TweenInfo.new(0.2), {Size = UDim2.new(0.8, 0, 0, 40)})
+    tween:Play()
+end)
+
+-- Animação de entrada
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.new(0, 350, 0, 280)})
+openTween:Play()
+
+-- Inicializar status
+updateStatus()
+
+print("GUI Chat Automático carregada com sucesso!")
